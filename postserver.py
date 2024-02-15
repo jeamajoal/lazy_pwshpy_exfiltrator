@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
   
+import datetime
 import os
 import posixpath
 import http.server
@@ -28,6 +29,9 @@ class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
  
     def do_POST(self):
         """Serve a POST request."""
+        # Log the request body to a file for debugging
+        #logself = self
+        #self.log_request_body(logself)
         r, ip, message = self.deal_post_data()
         print((r, ip, message))
         f = BytesIO()
@@ -50,6 +54,8 @@ class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         line = b'' #Initialize line data as byte
         file_data = b''  # Initialize file_data as an empty byte string
         in_file_data = False #Initialize in file as boolean
+        newid = ''
+        finalpath = ''
         content_type = self.headers['content-type']
         if not content_type:
             return (False, "Content-Type header doesn't contain boundary")
@@ -66,11 +72,12 @@ class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
    
         #Process request
         while remainbytes > 0:
+            #print(remainbytes)
             line = self.rfile.readline()
             remainbytes -= len(line)
 
             if in_file_data:
-                if boundary in line:
+                if boundary in line:                
                     in_file_data = False
                     file_data = file_data[:-2]  # Remove the last CRLF before boundary
                     if end_boundary in line:
@@ -87,9 +94,11 @@ class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                 id = re.findall(r'Content-Disposition.*name="id"', line.decode())
                 reqpath = re.findall(r'Content-Disposition.*name="path"', line.decode())
                 fn = re.findall(r'Content-Disposition.*name="filename"; filename="(.*)"', line.decode())
+                if not fn:
+                    fn = re.findall(r'Content-Disposition.*name="file"; filename="(.*)"', line.decode()) ## System.Net.WebClient
                 if fn:
                     in_file_data = True
-                    file_name = re.findall(r'Content-Disposition.*name="filename"; filename="(.*)"', line.decode())
+                    file_name = fn
                     file_data = file_data[:-2]
                     line = self.rfile.readline()
                     remainbytes -= len(line)
@@ -130,10 +139,10 @@ class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
                     line = line.replace("\n","")
                     newid = line
                     
-        if finalpath:
+        if finalpath != '':
             serverpath = finalpath                    
         
-        if newid:
+        if newid != '':
             serverpath = serverpath.replace(ip_address,newid)
 
         serverpath = serverpath.lower()
@@ -314,7 +323,22 @@ class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
         '.h': 'text/plain',
         })
  
- 
+    def log_request_body(logself):
+        # Generate a unique filename for the log
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        log_filename = f"request_log_{timestamp}.txt"
+        log_dir = "request_logs"  # Directory to store log files
+        os.makedirs(log_dir, exist_ok=True)  # Ensure the log directory exists
+        log_path = os.path.join(log_dir, log_filename)
+
+        # Read the full request body
+        content_length = int(logself.headers['Content-Length'])
+        request_body = logself.rfile.read(content_length)
+
+        # Write the request body to the log file
+        with open(log_path, 'wb') as log_file:
+            log_file.write(request_body)
+         
 def test(HandlerClass = SimpleHTTPRequestHandler,
          ServerClass = http.server.HTTPServer):
     http.server.test(HandlerClass, ServerClass)
@@ -325,7 +349,7 @@ if __name__ == '__main__':
         parser = argparse.ArgumentParser()
         parser.add_argument('--bind', '-b', default='0.0.0.0', metavar='ADDRESS',
                         help='Specify alternate bind address [default: all interfaces]')
-        parser.add_argument('--port', '-p',  default=8001, type=int,
+        parser.add_argument('--port', '-p',  default=8443, type=int,
                         help='Specify alternate port [default: 8443]')
         parser.add_argument('--uploadDir', '-u', default='uploads', type=str,
                         help='Specify alternate upload location [default: Current Dir]'
