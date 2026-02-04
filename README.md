@@ -1,14 +1,6 @@
 # Lazy PowerShell/Python Exfiltrator
 
-A lightweight Python 3 HTTP server paired with a PowerShell upload helper script, designed to simplify file exfiltration during penetration testing engagements. I created this tool during my OSCP study in 2024 to quickly transfer files from compromised Windows hosts back to my attack machine for analysis while performing lateral movement in lab scenarios.
-
-## Overview
-
-During penetration testing, there's often a need to extract files from target systems for offline analysis — configuration files, database exports, registry hives, or other artifacts that may contain credentials or other useful information for lateral movement. This tool streamlines that workflow by providing:
-
-1. **A Python HTTP Server (`postserver.py`)** — Receives multipart/form-data POST requests and intelligently organizes uploaded files into a directory structure based on the source machine's identity and original file path.
-
-2. **A PowerShell Upload Helper (`upload.ps1`)** — A function that can be imported or pasted into a PowerShell session on a compromised Windows host to quickly exfiltrate files or entire directories.
+A lightweight Python 3 HTTP server paired with a PowerShell upload helper script, designed to simplify file exfiltration during OSCP labs. I created this tool during my OSCP study in 2024 to quickly transfer files from compromised Windows hosts back to my attack machine for analysis while performing lateral movement in lab scenarios.
 
 ## Features
 
